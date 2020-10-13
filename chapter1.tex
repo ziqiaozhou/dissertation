@@ -1,0 +1,344 @@
+\chapter{\uppercase{Introduction}}
+\label{chap:intro}
+Unintended information leaks in resource-shared environments are a
+persistent problem in computer systems. The cause of those leaks is
+improper information flows that transfer information from secret
+variables to public channels. In part, such information leakage arises
+from developers' inability to test for them, since information leaks
+are typically not be evident in functional testing.
+
+Static program analysis is one approach to discover
+information leaks before they occur. However, tools for static
+analysis suffer from a variety of shortcomings. First, most existing
+information-flow tools (e.g., taint analysis and model checking) do
+not measure leakage, but merely detect it.  Second, due to the
+complexity of control-dependent assignments (i.e., implicit flows) and
+the lack of domain knowledge within the detector, detection tools
+raise false alarms.
+
+\iffalse
+First, a false alarm,
+caused by the complexity of control-dependent assignments (i.e.,
+implicit flows) and the lack of domain knowledge within the detector,
+can limit the tool's utility.  Second, most existing information-flow
+tools (e.g., taint analysis and model checking) merely detect leaks
+instead of measuring them.
+\fi
+
+Measuring is important since perfect security is usually not possible
+in the real world. For example, to defend against cache-based side
+channels, many mitigations~\cite{cachebar,scatterCache,phantomCache}
+proposed in recent years only increase the difficulty of exploiting
+cache channels but do not fully close them.
+How to prove the
+security of those defenses is challenging, as some defenses may
+eliminate known information flows but open new ones. In
+\chapref{chap:cachebar}, we design a software method called \cachebar
+to defend against cache-based side channels in \gls{LLC}. The defense
+is proved to be effective using both attack-specific empirical
+tests and model checking. However, empirical tests do not
+capture some information flows not triggered by the tests performed,
+which are detected instead by automated model checking. That is,
+empirical tests provide lower coverage of leakage sources in the
+defense system than static methods.
+
+\Gls{QIF}~\cite{denning1982cryptography,Gray:2991:TMF} is
+proposed to measure the amount of leakage from a computation.
+Due to the computation complexity, existing \gls{QIF}
+implementations (e.g.,~\cite{sidebuster:ccs10,chapman2011automated,Phan:2014:AMC:2590296.2590328,QIFverilog})
+tend to sacrifice measurement fidelity by using empirical data or
+abstract models, instead of static analysis on actual code bases.
+Furthermore, the measures used in earlier \gls{QIF} works do not
+capture the leakage pattern.  For example,
+entropy loss, a popular metric used in many \gls{QIF} theoretical
+studies, only expresses the ``expected" number of bits leaked, which
+can either leak that number of bits in all executions or leak many
+more bits in some cases but few bits in others.  \chapref{chap:sscf}
+proposes a more refined measure of leakage to help developers
+measure interference patterns conditioned on sets of secret values.
+\chapref{chap:dinome} extends the framework to accommodate
+computations on specific hardware processor designs, while providing
+ways to decompose causes of leakage and explain the causes using an
+interpretable model.
+
+This dissertation is structured as follows. It first introduces some
+terminology to depict an end-to-end security model called
+noninterference in \secref{sec:basic}. The model guides us in defining
+and measuring leakage, starting with an empirical evaluation for
+cache-based side-channel attacks in~\chapref{chap:cachebar} and then
+maturing to a static measurement framework in~\chapref{chap:sscf}. In
+addition, \secref{sec:intro:declass} and \secref{sec:intro:interpret}
+present the challenges in real-world noninterference evaluations,
+which are addressed by a modified framework that accommodates hardware
+designs in \chapref{chap:dinome}. We also present the toolchains
+implementing the proposed methodologies and use them to evaluate
+software and hardware computations. Those results together demonstrate
+the dissertation statement:
+
+\textbf{Information leakage from computation can be quantitatively
+  measured and expressed in a human-interpretable model. Using this
+  model, one can evaluate existing codebases and
+  modifications thereof to restrict information flows.}
+
+\section{Security Model}
+\label{sec:basic}
+\textit{Noninterference}~\cite{goguen1982security} is
+a commonly used end-to-end model for information-flow security. In the
+noninterference model, a secured computation is seen as a machine
+having inputs and outputs where its secret does not determine what
+lower-level users~(or attackers) can see or gain access to. In other
+words, the secret inputs do not ``interfere" with those outputs.
+Motivated by the security model, this dissertation targets
+the information leaked about secret variables input to a
+\textit{procedure} \proc.  More specifically, we divide the formal
+input parameters to procedure \proc into three disjoint sets, namely
+\ACIKeys, \SecKeys, and \AIIKeys, having the following properties.
+\begin{compactitem} 
+\item $\ACIVar \in \ACIKeys$ takes on a value $\ACIFn{}(\ACIVar)$
+  controlled by the attacker. 
+\item $\SecVar \in \SecKeys$ takes on a value $\SecFn{}(\SecVar)$ that
+  is a secret for which an analyst is specifically concerned with
+  detecting leakage via the outputs \AOOKeys{}.  Unless otherwise stated
+  we will assume there is one secret input variable \secretVar, and so
+  $\SecKeys = \{\secretVar\}$.
+\item $\AIIVar \in \AIIKeys$ takes on a value $\AIIFn{}(\AIIVar)$ that
+  is not controlled by the attacker. The use of $\AIIVar$
+would be emphasized in \secref{sscf:sec:measurement:random}.
+\end{compactitem}
+In addition, there is a set \AOOKeys such that each $\AOOVar \in
+\AOOKeys$ takes on a value $\AOOFn{}(\AOOVar)$ that is observable by
+the attacker.  So we consider \proc to be of the form
+\[
+\AOOFn{} \gets \proc(\ACIFn{}, \AIIFn{}, \SecFn{})
+\]
+
+This dissertation assumes that \proc is deterministic; a nondeterministic
+computation \proc can be rendered deterministic by adding any
+randomness as inputs, say $\AIIFn{}(\coinsVar)$. A given \proc can
+then be characterized by a logical postcondition
+$\postcondition{\proc}{}(\ACIFn{}, \AIIFn{}, \SecFn{}, \AOOFn{})$
+that constrains how the values in \AOOFn{} relate to those in
+\ACIFn{}, \AIIFn{}, and \SecFn{} in any execution. 
+\iffalse
+%% already said this above
+Without loss of generality,
+below we assume \SecKeys contains a single variable \SecVar, i.e.,
+$\SecKeys = \{ \SecVar \}$.
+\fi
+
+A poorly designed procedure (and thus postcondition) may expose
+information about the secret value in \SecFn{} through observable in
+\AOOFn{} when the attacker chooses the input in \ACIFn{}, which is the
+information leakage that our framework will focus on. That is, for one
+execution with any \SecFn{} and \AIIFn{}, another execution with any
+\SecFnAlt{} must have a chance (with some \ACIFnAlt{}) to output
+equivalent \AOOFn{}, when the attacker chooses any equivalent
+controlled input \ACIFn{}. A formal definition of noninterference for
+a procedure \proc could be expressed as: \[ \forall
+\ACIFn{},\AIIFn{},\SecFn{},\SecFnAlt{}:\exists \AIIFnAlt{}, \AOOFn{}:
+\postcondition{\proc}{}(\ACIFn{}, \AIIFn{}, \SecFn{}, \AOOFn{}) \wedge
+\postcondition{\proc}{}(\ACIFn{}, \AIIFnAlt{}, \SecFnAlt{}, \AOOFn{})
+\]
+
+However, noninterference is overly strict, excluding any computation
+outputting some observable values not feasible for some secret value.  This
+dissertation instead explores the quantitative measure of noninterference.
+One possible direction is to measure interference based on empirical
+data, which is used in \chapref{chap:cachebar} to evaluate cache-based
+side channels in a complicated defense. Another direction is to
+analyze the victim's program through static analysis, which is
+discussed in \chapref{chap:sscf} to cover more interference cases than
+empirical evaluations. 
+
+\section{Information Declassification}
+\label{sec:intro:declass}
+In the real world, a computation may have inevitable leaks. For
+example, a password checker revealing whether the password is matched
+with attacker's input has an insecured flow from the confidential
+password to the output. Such insecured flow is due to the designed
+functionality and is an intended leakage. 
+
+\textit{Information declassification} is an approach to exempt such
+allowed information flows~\cite{Sabelfeld:2009:DDP:1662658.1662659},
+Information flow research uses declassification to avoid reporting the
+leakage due to these allowed releases of information.  However, those
+works only detect but do not measure additional leakage. Without
+exempting the declassified information from the leakage, a measure may
+incorrectly estimate the illegal leakage of a target program.
+
+\chapref{chap:dinome} proposes a methodology to use
+\textit{declassification} in leakage measurement. The methodology
+enables analysts to \textit{declassify} certain information, thereby
+focusing the measurement on any \textit{other} leakage that might be
+occurring, i.e., leakage that cannot be inferred from the declassified
+information.  For systems as complex as modern processors, this
+ability is essential to permit analysts to decompose and analyze
+leakage in a piecemeal fashion.
+
+Slightly different from existing declassification
+research~\cite{sabelfeld2003model,chong2004security}, where
+declassification only reduces the leakage, our work better defines the
+actual unintended leakage with an awareness that declassification of
+certain information can either increase or decrease the unintended
+leakage.  On the one hand, if some interference is due to
+declassification of a part of the secret, our measurement should not
+reflect that declassified information. For instance, suppose the procedure
+$\proc(\ACIFn{}, \AIIFn{}, \SecFn{})$ returns the lowest four bits of
+the secret:
+\[\proc(\ACIFn{}, \AIIFn{}, \SecFn{}):
+	 \hspace{3ex} \AOOFn{}(\textrm{`result'})\gets\SecFn{}(\secretVar)\bmod16
+\]
+and the declassified information is whether the secret value
+$\SecFn{}(\secretVar)$ is even or odd (i.e., $\SecFn{}(\secretVar)$
+$\bmod 2$). The interference measure should be decreased by this
+declassification, as the interference caused by the lowest bit has
+been allowed. On the other hand, if the declassification increases the
+risk to the secret when an attacker utilizes both the observable
+output from the computation and the allowed declassified information,
+then this increase should be reflected in the measure. For example, if
+the computation $\proc(\ACIFn{}, \AIIFn{}, \SecFn{})$ uses a random
+variable \AIIFn{}(\coinsVar):
+\[\proc(\ACIFn{}, \AIIFn{}, \SecFn{}):
+\hspace{3ex}	\AOOFn{}(\textrm{`result'})\gets \SecFn{}(\secretVar) + \AIIFn{}(\coinsVar) 
+\]
+where the declassified information is $\AIIFn{}(\coinsVar)$, then it
+leaks more than than \proc without declassification, since an attacker
+can use $\AOOFn{}(\textrm{`result'})$ and the declassified $\AIIFn{}(\coinsVar)$ to
+reveal more about $\SecFn{}(\secretVar)$.  We demonstrate those
+effects using both dummy and actual computations in
+\chapref{chap:dinome}.
+
+\section{Interpreting Leakage}
+\label{sec:intro:interpret}
+A computation includes both software and hardware implementations. The
+sheer complexity of hardware designs~(e.g., CPU processor) means that
+once leakage is measured, the exact conditions that cause this leakage
+might not immediately be evident.  Our work seeks a measure with
+interpretability to help developers understand sources of leakage and
+how to rectify them.
+
+\chapref{chap:sscf} provides a way to quantitatively measure the
+leakage for a procedure, which depicts how much about the secret is
+leaked due to the interference and how often an interference could
+happen.  However, it does not explain \textit{why} the procedure leaks
+information.
+
+\begin{figure}[tb]
+\begin{subfigure}[m]{0.45\textwidth}
+{\small
+\begin{tabbing}
+** \= ** \= ***** \= \kill
+\proc(\ACIFn{}, \AIIFn{}, \SecFn{}) \\
+		\> if  ($\ACIFn{}(\textrm{`test'})\bmod 2=~1$)\\
+		\>\>  if( $\SecFn{}(\secretVar) \bmod 2=~1$)\\
+			\>\>\>	$\AOOFn{}(\textrm{`result'})\gets 1$\\
+			\>\>	else\\
+		 \>\>\>$\AOOFn{}(\textrm{`result'})\gets 0$\\
+		\> else\\
+		\>\> $\AOOFn{}(\textrm{`result'})\gets 1$
+\end{tabbing}
+}
+\caption{Procedure (implicit flow)\label{fig:leak1:code}}
+\end{subfigure}
+  \begin{tabular}{c}
+\begin{subfigure}[b]{0.49\textwidth}
+\vspace{1ex}
+{\small
+\begin{tabbing}
+** \= ** \= ***** \= \kill
+\proc(\ACIFn{}, \AIIFn{}, \SecFn{}) \\
+\> $\AOOFn{}(\textrm{`result'}) \gets \ACIFn{}(\textrm{`test'})~\&~\SecFn{}(\secretVar)~\&~1$ 
+\end{tabbing}
+}
+\caption{Procedure (explicit flow)\label{fig:leak2:code}}
+\end{subfigure}
+\\
+  \begin{subfigure}[b]{0.49\textwidth}
+\vspace{2.5ex}
+{\small
+\begin{tabbing}
+** \= ** \= ***** \= \kill
+\proc(\ACIFn{}, \AIIFn{}, \SecFn{}) \\
+\> $\AOOFn{}(\textrm{`result'}) \gets
+\ACIFn{}(\textrm{`test'})~\&~\SecFn{}(\secretVar)~\&~2$ 
+\end{tabbing}
+  }
+\caption{Procedure (different explicit flow)\label{fig:leak3:code}}
+  \end{subfigure}
+  \end{tabular}
+\caption{Motivating examples\label{fig:sameleak:code}}
+\end{figure}
+
+Consider the two procedures shown in \figref{fig:leak1:code} and
+\figref{fig:leak2:code}. The procedure in \figref{fig:leak1:code} returns 1 if
+$\ACIFn{}(\textrm{`test'}) \bmod 2 = 0$ and $\SecFn{}(\secretVar) \bmod 2$
+otherwise, and the second procedure in \figref{fig:leak2:code} returns the least
+significant bit of $\SecFn{}(\secretVar)~\&~\ACIFn{}(\textrm{`test'})$.  As
+such, the two procedures leak the same information about the secret (i.e., both
+leak the least significant bit of the secret when $\ACIFn{}(\textrm{`test'})$ is
+odd and nothing otherwise), using different coding styles. Indeed,
+both procedures have the same quantitative leakage if we just
+\textit{quantify} their interference.  However, the quantitative
+measure does not express the concrete pairs of inputs causing the
+interference, thus losing some information about how the attacker's
+controlled and observable variables work together to reveal the
+secret. For example, the procedure in \figref{fig:leak3:code}, which
+reveals the second bit of the secret when the second bit of
+$\ACIFn{}(\textrm{`test'})$ is 1, leaks the same amount of information
+about a different portion of the secret under a different attack condition. Merely relying on the
+quantitative measure proposed in \chapref{chap:sscf}, we cannot
+explain to the developer that \figref{fig:leak3:code} causes a
+different interference from \figref{fig:leak1:code} and \figref{fig:leak2:code}.
+
+\chapref{chap:dinome} incorporates a method of \textit{interpreting}
+the leakage, i.e., providing simple rules that indicate circumstances
+in which leakage will (or will not) occur.  Each such rule is
+additionally accompanied by a precision and recall, so that analysts
+can prioritize the rules they address.
+ 
+\section{Implementation Considerations}
+There are several different ways to try to quantitatively measure
+interference. Depending on the targeted computations, we may choose
+different implementations to quantify the leakage.
+
+One possible method to evaluate the security of a complicated system
+is to replay existing attacks and measure the difficulty of revealing
+the secret using the attacks. In \chapref{chap:cachebar}, we
+illustrate this approach by collect the attacker's ability to exploit
+cache-based side-channel attacks in a machine with or without a
+defense we propose. We train a classifier to tell how many cache lines
+are used by the victim during a computation and calculate a confusion
+matrix to assess whether an attacker can distinguish a secret value in
+the victim program from others, by using this classifier. Since the
+measurement is based on data collected from specific attacks, it does
+not guarantee the leakage's completeness under all conditions.
+
+To cover more sources of interference, \secref{sscf:sec:impl} proposes
+a static quantification method using symbolic execution to extract the
+logic postcondition \postcondition{\proc}{} of \proc.  With
+\postcondition{\proc}{}, that chapter explores the assessment of
+leakage vulnerabilities by randomly sampling a space of secret values
+and then limiting our search for pairs of attacker-controlled inputs
+and attacker-observable outputs to only those that are consistent with
+some secret in that space. Finding two spaces of secret values for
+which these counts suggest pairs consistent with one but not both then
+reveals interference.
+
+To evaluate joint hardware-software vulnerabilities, static analysis
+(e.g., through symbolic execution) is unscalable due to the complexity
+of the hardware. \secref{dinome:sec:impl} describes a implementation
+called \thirdsysname to statically evaluate hardware-software
+vulnerabilities.  \thirdsysname targets software snippets for up to
+hundreds of cycles in open-sourced CPU processors (e.g., RISC-V
+\boom). Specifically, \thirdsysname considers a \proc composed with
+partially symbolic processor and assembly (i.e., software), which
+could complete execution within hundreds of CPU cycles.  Instead of
+symbolically executing this \proc for multiple cycles
+(e.g.,~\cite{ruiHardware}), which should be expensive, \thirdsysname
+generates a transition logic from the current state to the next-cycle
+state and then efficiently stitches together a multi-cycle
+postcondition.  Although the dissertation starts with the \cachebar
+work and ends with a static methodology for measuring interference,
+the limitations of \thirdsysname (discussed in
+\secref{dinome:sec:limitations}) make it hard to adapt to \cachebar.
+

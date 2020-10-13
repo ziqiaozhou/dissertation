@@ -1,0 +1,220 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% HEADER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt,openany,oneside]{unc_dissertation}
+
+%Font packages
+%\usepackage[T1]{fontenc}
+%\usepackage[latin1]{inputenc}
+%Bilbiography styles
+\usepackage{verbatim}
+% List of acronyms
+\usepackage[acronym]{glossaries-extra}
+\usepackage{longtable}
+\usepackage{textcase}
+%% Math Packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%https://www.overleaf.com/project/5efebf462266160001807855
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{bbm}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{mathrsfs}
+\usepackage{amsthm}
+%\usepackage{lgrind}
+\usepackage{url}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{expl3}
+\usepackage{collcell}
+\usepackage{diagbox}
+\usepackage[table]{xcolor}
+\usepackage{xspace}
+\usepackage{epsfig,endnotes}
+\usepackage{url}
+\usepackage[alwaysadjust]{paralist}
+\usepackage{color}
+\usepackage{datatool}
+\usepackage{booktabs}
+\usepackage[labelformat=simple,font=small,skip=0ex,indention=0ex]{subcaption}
+\renewcommand\thesubfigure{(\alph{subfigure})}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{multirow}
+%for ieee template
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{lipsum}
+\usepackage[verbose]{wrapfig}
+\usepackage{etoolbox}
+\usepackage{bookmark}
+\usepackage{dcolumn}
+\setcounter{secnumdepth}{3}
+\renewcommand{\thesubsubsection}{\thesubsection(\alph{subsubsection})	}
+
+\graphicspath{{./}{./fig/}}
+\input{macro}
+
+
+\bibliographystyle{abbrv}
+
+%
+% GETS RID OF INDENTATION IN LIST OF FIGURES/LIST OF TABLES
+%
+\makeatletter
+\renewcommand{\@tocrmarg}{0.22\linewidth}% default is 1.55em
+\renewcommand*\l@figure{\@dottedtocline{1}{0em}{2.3em}}% Default: 1.5em/2.3em
+\let\l@table\l@figure
+\makeatother
+
+
+
+
+
+% USER DEFINED COMMANDS
+\newtheorem{theorem}{Theorem}
+
+%% Reduce spacing between paragraph and section title %%%%%%%
+%% @todo: Put this modification in the class file itself.
+\usepackage{titlesec}
+\titlespacing*{\section}
+{0pt}{-5pt}{0pt}
+\titlespacing*{\subsection}
+{0pt}{-5pt}{0pt}
+\usepackage{indentfirst}   %Indents first paragraphs in every section.
+
+%% Flush footnotes to the left
+\usepackage[hang,flushmargin]{footmisc}
+%% Places footnotes immediately below horizontal rule
+\setlength{\footnotesep}{0pt}
+
+%% Normal LaTeX or pdfLaTeX? %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\RequirePackage{ifpdf}
+%% Packages for Graphics & Figures %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DOCUMENT SETTINGS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Evaluating Information Leakage by Quantitative
+and Interpretable Measurements}
+\author{Ziqiao Zhou}
+\dissdept{Department of Computer Science}
+\disstype{dissertation}
+\committee{Michael Reiter}{Jack Snoeyink}{Montek Singh}{David Evans}{Ilya Mironov}
+\date{February 23, 2016}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Abstract
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{abstract.tex}
+
+\dedication{To my family}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GLOSSARIES AND ABBREVIATIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% To update the printed glossary, you need to run:
+% - pdflatex dissertation
+% - makeglossaries dissertation
+% - pdflatex dissertation
+% On Windows, you might need to install Perl first.
+
+\makeglossaries
+\setabbreviationstyle[acronym]{long-short}
+\loadglsentries{gls}
+\renewcommand{\glsnamefont}[1]{\textbf{#1}}
+\glssetcategoryattribute{acronym}{glossdesc}{title}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DOCUMENT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\linespread{1.0}
+\begin{document}
+\long\def\symbolfootnote[#1]#2{\begingroup
+\footnote[#1]{#2}\endgroup}
+%% File Extensions of Graphics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ifpdf
+	\DeclareGraphicsExtensions{.pdf,.jpg,.png}
+\else
+	\DeclareGraphicsExtensions{.eps}
+\fi
+
+\pagestyle{plain}
+
+%%%%%%%%%%%%%%%%%
+%% INITIAL THINGS
+%%%%%%%%%%%%%%%%%
+
+\frontmatter
+\maketitle
+%\clearpage
+%\pdfbookmark[0]{ACKNOWLEDGEMENTS}{Acknowledgements}
+\chapter*{Acknowledgements}
+\input{acknowledgements.tex}
+
+% The graduate school requires that entries are double spaced.
+% They also require that multiple lines in a single entry are single spaced.
+% This achieves that by setting \baselineskip (the space between lines)
+% and \parskip (the additional space between paragraphs) directly, then restoring them
+%
+% @todo: Find a more elegant way of achieving this
+
+% Establish original spacings
+\clearpage
+
+\hypertarget{toc}{}
+\bookmark[dest=toc]{TABLE OF CONTENTS}
+% Establish original spacings
+\newlength{\oldbaselineskip}
+\setlength{\oldbaselineskip}{\the\baselineskip}
+\newlength{\oldparskip}
+\setlength{\oldparskip}{\the\parskip}
+% Set spacings for these sections
+\setlength{\baselineskip}{0.5\oldbaselineskip}
+\setlength{\parskip}{0.5\oldbaselineskip}
+\glsunsetall
+\tableofcontents
+\listoffigures
+\nopagebreak[0]
+\listoftables
+\glsresetall
+% Restore original spacings
+\setlength{\baselineskip}{1.0\oldbaselineskip}
+\setlength{\parskip}{1.0\oldparskip}
+\listofabbreviations
+\clearpage{\pagestyle{empty}\cleardoublepage}
+\mainmatter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%MAIN CHAPTERS%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{plain} % Restore page numbers
+
+% Chapter 1
+\input{chapter1.tex}
+
+% Chapter 2
+\input{chapter2.tex}
+\input{cachebar.tex}
+\input{sscf.tex}
+\input{dinome.tex}
+\input{conclude.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BIBLIOGRAPHY AND OTHER LISTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\backmatter
+
+% Bibliography
+\bibliography{dissertation}
+%\addtocontentsline{toc}{\protect\vspace*{\baselineskip}}
+
+% Add bibliography to contents page
+%\addcontentsline{toc}{chapter}{Bibliography} %'Bibliography' into toc
+
+
+
+\end{document}

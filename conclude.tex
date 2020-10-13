@@ -1,0 +1,56 @@
+\chapter{\uppercase{Conclusion}}
+Any computation with insecure information flows is potentially
+vulnerable to side-channel attacks.  Noninterference was conceived as
+a requirement to eliminate any such flows.  In practice, however,
+absolute noninterference can rarely be achieved.  This
+dissertation has thus made contributions toward the development of
+\textit{measuring} noninterference for real-world programs.
+
+First, we explored noninterference assessment using
+empirical evaluations against cache-based side-channel
+attacks. Relying on these empirical evaluations, we demonstrated
+\cachebar's effectiveness in defending against cache-based side
+channels in \glspl{LLC}. However, model checking revealed that
+empirical assessment was not enough, as it failed to capture
+interference not triggered by the concrete experiments.  This lesson
+motivated the use of formal approaches for assessing noninterference
+more holistically.
+\iffalse
+%% This is too detailed at this point in the thesis
+Concretely,
+when the copy-on-access transitions \accessed to \shared due to
+timeout or \exclusive to the \shared due to copy merging, the attacker
+still could \Reload to learn whether the victim used that memory page
+if the those state transitions does not clear the victim's footprint
+in cache.
+\fi
+
+Second, we suggested a static method for measuring interference from
+actual codebases. One contribution of our measurement is its
+formulation of interference as the distinguishability of two sets of
+secret values.  This novel metric supports noninterference measurement
+in multiple dimensions, reflecting how often secrets leak when the
+size \secretsSetSize of secret sets is small and how much is leaked
+when \secretsSetSize is large.  Case studies showed that our
+measurement framework has moderate runtime costs, which range from
+minutes to days depending on the workload and the computation
+resources (i.e., parallelization is possible).
+
+Third, we extended the static framework to relatively complicated
+computations including the processor on which they execute, and
+implemented them in \thirdsysname.  By leveraging the declassification
+and interpretation capabilities of \thirdsysname, we measured and
+explained hardware-software vulnerabilities. \thirdsysname analyzes a
+sequence of instructions running for hundreds of cycles above the
+\boom processor.  Logical rules sorted by their precision and recall
+values explain the sources of leakage without forcing the analyst to
+diagnose the leakage from the measurement value alone.
+
+We demonstrated the possibility of using our frameworks to measure and
+interpret unintended leakage in practice using our case studies on
+side-channel leakage through shared caches, traffic analysis, adaptive
+compression algorithms, shared TCP network counters, sliding-window
+modular exponentiation algorithms, and speculative executions.  We
+hope that these demonstrations of noninterference measurement will
+bring \glsfirst{QIF} closer to practice and help analysts develop better
+mitigations.

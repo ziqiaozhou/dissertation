@@ -1,0 +1,45 @@
+\abstract{
+Noninterference, a strong security property for a computation process,
+informally says that the process output is insensitive to the value of
+its secret inputs -- the secret inputs do not "interfere" with those
+outputs.  This is too strong, however;  a degree of interference is
+necessary in almost all real systems.  In this dissertation, we
+propose a \textit{measure} of noninterference that is more practical.
+Based on a model of computations with three types of input (secret,
+attacker-controlled, and others) and an attacker-observable output, we
+define a noninterference measure that can assess and explain
+information leaks in actual codebases.
+
+We start with assessing a new defense against cache-based side-channel
+attacks in a cloud environment, using an experiment-based quantitative
+measure of leakage against existing attacks.  It is not enough to
+measure leakage through empirical analysis, however, as it fails to
+identify new interference introduced by a weak defense design.  We
+propose a symbolic execution framework to formally measure
+interference in simple software procedures, encompassing any
+interference from a set of secret inputs to observable outputs.
+Leveraging approximate model counting techniques, we make this
+framework scalable with parallelization.  Unfortunately, this
+technique does not scale to support analysis of hardware processor
+designs, in part due to its reliance on symbolic execution to create a
+logical postcondition of the computation.  We thus modified the
+framework to sidestep symbolic execution when analyzing processor
+designs. To further tame the complexity due to various sources of
+interference, we extend our framework to remove, or declassify,
+certain interference from consideration, so that the framework instead
+highlights other forms of interference, and to provide
+human-interpretable rules that explain the conditions under which
+interference occurs. We demonstrate the practicality of the work
+through case studies of both software-based leakage and
+vulnerabilities in the RISC-V  BOOM core with different
+configurations. 
+\iffalse
+Considering hardware
+and software logic together reminds us that some interference is
+required for proper functioning while multiplying the possible leakage
+sources. We extend the definition of noninterference in
+hardware/software settings to identify allowed interference and to
+generate rule-based interpretations to explain unintended
+interference.
+\fi
+}

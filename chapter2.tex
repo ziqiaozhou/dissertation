@@ -1,0 +1,345 @@
+\chapter{\uppercase{Background and Related Work}}
+\label{chap:background}
+
+\section{Side Channels in CPU Caches}
+Cache-based side channels are important attack vectors that have been
+researched for many years
+(e.g.,~\cite{zhang2014cross,yarom2014flush,liu2015practical}).  The
+most common cache-based side-channel attacks are \primeprobe,
+\flushreload, and their variants.
+
+\subsection{\flushreload}
+The \flushreload (e.g.,~\cite{zhang2014cross,yarom2014flush})
+is a highly effective cache-based side channel attacks that was used,
+e.g., by Zhang et al.~\cite{zhang2014cross}, to mount fine-grained side
+channels when memory sharing enabled.  It leverages physical memory
+pages shared between an attacker and victim security domains (e.g.,
+due to shared libraries), as well as the ability to evict those pages
+from cache, using a capability such as provided by the \clflush
+instruction on the x86 architecture. In the flushing stage, the
+attacker \Flush{es} a chunk of the shared memory out of the cache.
+After a short time interval (the ``\flushreload interval'') during
+which the victim executes, the attacker measures the time to \Reload
+the same chunk.  In this case, the secret data whose value is
+reflected in the use of shared memory is \SecFn{}, while the cache hit
+or miss which is reflected by the timing of \Reload is mapped to
+\AOOFn{}.
+
+\subsection{\primeprobe}
+Another common method to launch side-channel attacks via caches is
+using \primeprobe attacks, introduced by Osvik et
+al.~\cite{osvik2006cache}.  These attacks have recently been adapted
+to use \glspl{LLC} to great effect, e.g.,~\cite{liu2015practical,
+irazoqui2015shared}.  Unlike a \flushreload attack, \primeprobe
+attacks do not require the attacker and victim security domains to
+share pages. Here, the attacker utilizes the architectural property of
+an associative cache that different memory blocks may be stored in the
+same cache set. In the \Prime stage, the attacker \Prime{s} the cache
+by loading memory blocks into a target cache set.  Subsequently, the
+attacker \Probe{s} the cache by measuring the time to access the
+previously loaded memory blocks. The time to do so tells the attacker
+how many cache lines in that cache set were evicted by the victim in
+the interim.  Generally, secret data (e.g., the private key in
+decryption) whose value decides the use of memory blocks (e.g.,
+indices in some lookup tables, or the use of key-dependent
+instructions) mapping to known cache sets is \SecFn{}, while the cache
+hit or miss which is reflected by the timing of \Probe is mapped to
+\AOOFn{}.
+
+\subsection{Speculative Execution CPU Risk}
+The cause of cache-based side channel attacks is the poorly controlled
+information flow from sensitive data/instructions to shared cache
+resources. The recent Spectre~\cite{spectre} and
+Meltdown~\cite{meltdown} attacks further demonstrate the joint risk of
+speculative execution and cache side channels , in this case allowing
+an attacker to read arbitrary memory locations in a victim process. To
+provide more concurrency, a CPU predicts the outcome of a conditional
+branch and executes instructions based on that prediction to reduce
+delays incurred by those instructions if its prediction was correct.
+However, even if the prediction is incorrect, then some changes to
+the cache caused by speculative execution will persist even after the
+mispredicted computations have been discarded. Those changes
+propagate unintended information to exploitable cache-based side
+channels, allowing the attacker to steal them.
+
+\subsection{Mitigations and their proof of security}
+Numerous proposals have sought to mitigate cache-based side channels
+in application, system, and hardware levels. 
+
+The straightforward method to remove a cache-based side channel for a
+specific application is to modify the application's software code to
+better protect secrets from side-channel attacks.  These solutions
+range from tools to limit branching on sensitive data
+(e.g.,~\cite{coppens2009practical, crane2015thwarting}) to
+application-specific side-channel-free implementations
+(e.g.,~\cite{konighofer2008fast}).  However, the the overheads of
+these techniques tend to grow with the scope of programs to which they
+apply and can be very substantial (e.g.,~\cite{rane2015raccoon}). 
+
+Hardware-based mitigations redesign the the cache with a stronger
+isolation between different security domains. One direction of the new
+design is to manage ownership of a cache line so that disallowing the
+interference from unauthorized users e.g.,~\cite{wang2008novel,
+keramidas2008non, Liu:2014:RFC}). Other works
+(e.g.,~\cite{scatterCache,phantomCache}) tends to use domain-specific
+memory-to-cache mapping to increase the difficulty to decrypt the
+memory address. However, deploying secured cache design to all
+machines is not that possible in the foreseeable future. 
+
+System-level countermeasures tend to mitigate the cache side channels
+by modifying \gls{OS} or hypervisor. The modifications obfuscate the
+cache timing or isolate the memory access across different security
+domains. For example, several works provide to each security domain a
+limited number of designated memory that are never evicted from the
+LLC (e.g.,~\cite{kim2012stealthmem,CATalyst}), thereby rendering their
+contents immune to \primeprobe side channel attacks. To mitigate
+\flushreload, some works~\cite{owens2011non,zhang2014cross,dedup:sp16}
+have suggested disabling or selectively enabling memory sharing for
+countering various side-channel attacks exploiting shared memory,
+while stopping short of exploring a complete design for doing so.  
+
+Those works usually use theoretical
+explanations~\cite{kim2012stealthmem,wang2008novel} or empirical
+evaluations to prove their improved security. A commonly used
+empirical evaluation targets the timing channel strength in a
+specific cryptographic system (e.g.,~\cite{coppens2009practical,konighofer2008fast,keramidas2008non,Liu:2014:RFC,CATalyst}).
+Specifically, they rerun concrete attacks targeting a cryptographic
+system and then use timing statistics (e.g., the timing difference)
+to reflect the timing channel strength. Such evaluations do not
+reflect the attacker's actual power using a classifier, which takes
+timing as input and predicts the secret. Another direction to
+evaluate the cache-based side channels depicts the side-channel
+leakage through the performance of the classifier, e.g., the expected
+number of correct bits (e.g.,~\cite{crane2015thwarting}) or the
+confusion matrix~\cite{rane2015raccoon}).  In
+\chapref{chap:cachebar}, we provide a \coa design as an efficient
+memory isolation selectively enabling memory sharing for addressing
+\flushreload attacks, and extend this idea with cacheability
+management for \primeprobe defense, as well. Then we prove the
+improved security using confusion matrices from empirical evaluations
+and further check the security using a formal model.
+
+\section{Generalization of Noninterference Property}
+Noninterference property provides a strong security guarantee of zero
+information leakage.  \textit{Security type system}s enforce the
+noninterference by tracking information flow within programs and
+checking security rules used to assign variables with different
+security labels.  However, strict noninterference makes those systems
+hard to use in practice due to inevitable flows from high-security to
+low-security labels. To make the noninterference model more tractable,
+\textit{declassification} \cite{Sabelfeld:2009:DDP:1662658.1662659}
+provides a weaker form of information flow policies that defines
+\textit{what} information could be released, \textit{where} within the
+code it is released (i.e., locations), \textit{who} releases it (i.e.,
+users), and \textit{when} it is released (i.e., time). To support
+declassification, many works (e.g.,
+\cite{sabelfeld2003model,giacobazzi2018abstract,chong2004security,
+banerjee2008expressive,ferraiuolo2017verification}) changes security
+type systems to include a means of downgrading to permit high-security
+data to propagate to low-security variables. 
+
+\subsection{Delimited release}
+Sabelfeld et al. \cite{sabelfeld2003model} introduces a method to
+define declassification use called \textit{delimited release}. It
+uses a specialized function \texttt{declassify} to mark a collection
+of expressions about \textit{what} information to release. Then a
+program satisfies the \text{delimited release} if it has the following
+property:  for any two executions which only differs in the value of
+secret \SecFn{} and \SecFnAlt{}, observable value is always the same
+when the value of expressions defined by \texttt{declassify} function
+is the same.
+
+In chapter \chapref{chap:dinome}, a modified quantitative
+measure accepts the declassified information which defines
+\textit{what} a secret information could be released through a
+developer-defined logic formula. 
+
+\subsection{Abstract noninterference}
+Giacobazzi et al.~\cite{giacobazzi2004abstract,giacobazzi2018abstract}
+introduce the notion of abstract noninterference to weaken the
+noninterference by parameterizing standard noninterference relatively
+to what an attacker can observe.  Specifically, the abstract
+noninterference considers properties instead of values as observable
+objects. Since the attacker may not be able to access all public
+values in a program directly, the abstract noninterference intuitively
+defines a \textit{weaker observer}~(than an observer directly using
+values from the victim's procedure) through abstract interpretation.
+To use declassification, it again uses an input property representing
+which inputs they need to check noninterference.    
+
+The case studies for cache-based side channels in
+\chapref{chap:dinome} compose attacker's observable and controllable
+variables instead of directly using existing variables in the cache
+module, as an attacker only loads or flushes memory blocks and
+observes cache hit or miss but does not directly modify or observe any
+registers in cache modules. 
+ 
+\section{Quantitative Information Flows}
+\label{sec:related:qif}
+Another direction to generalize noninterference property is to measure
+instead of only detecting the violation. First introduced by
+Denning~\cite{denning1982cryptography} and Gray~\cite{Gray:2991:TMF}
+in the 1980s, \gls{QIF} measures the amount of information leaked
+about a secret by observing a program execution. 
+\subsection{Measuring entropy uncertainty} 
+The earliest model of \gls{QIF}
+(\cite{denning1982cryptography,Gray:2991:TMF, Clark:2002:QAL,
+Clark:2005:QIF, Clark:2007:SAQ}) uses the Shannon mutual information
+to measure uncertainty about the secret.
+Smith~\cite{smith2009foundations} claims that Shannon entropy fails
+to accurately capture the vulnerability of a program, as it does not
+measure the probability of correct guessing. Furthermore, Clarkson et
+al.~\cite{clarkson2005belief} argues that the uncertainty-based
+measurement is inadequate as it only measures the probability of an
+attacker being absolutely correct or absolutely wrong. 
+
+Our work improves on prior work in \gls{QIF} along one or more of the
+following dimensions.  First, computing the measures in these works
+often involves computing outputs induced by sampled secret
+values~(e.g.,~\cite{Clark:2007:SAQ}), which sometimes leverages
+application-specific restrictions to be tractable
+~(e.g.,~\cite{sidebuster:ccs10}).  Our framework proposed in
+\chapref{chap:sscf}, in contrast, does not require such
+application-specific restrictions.  Second, exploiting leakage
+vulnerabilities often requires attackers not only to observe outputs
+but also to inject inputs, and many applications incorporate other
+inputs, as well.  These \QIF calculations are not possible without
+knowing the distributions from which these values are drawn (e.g.,
+\cite{mardziel2014quantifying}), and so some works
+(e.g.,~\cite{Kopf:2007:IMA:1315245.1315282,Pasareanu:CSF:2016})
+heuristically assign specific values to these unknown inputs,
+potentially hiding the leakage from other assignments.  Our analysis
+computes conditionals in a different ``direction,'' i.e., counting
+possible combinations of attacker-controlled inputs and
+attacker-observable outputs conditioned on sets of secret values and
+while leaving other inputs constrained. In doing so, our technique
+accommodates attacker-controlled inputs but does not presume knowledge
+of the attacker's strategy or the distributions of these or other
+inputs.  Third, some \QIF frameworks work only for deterministic
+procedures (e.g.,~\cite{cryptoeprint:2017:401,randQIF}), whereas ours
+accommodates nondeterministic ones, as well. 
+
+\subsection{Differential privacy}
+
+Differential privacy~\cite{dp} is a criterion for privacy protection
+that many algorithms have been devised to satisfy.  As originally
+expressed, differential privacy requires that any output observed from
+a computation on a database is insensitive to the existence of any
+single element (row) in that database; i.e., the probability of
+observing a computation output is nearly the same even if any single
+row is added or removed.  Viewing the database as our secret value,
+this definition therefore requires that computations on
+\textit{nearby} secrets result in the same attacker-observable
+outputs, with high probability.  In contrast to differential privacy,
+our work does not leverage a distance measure over secrets; i.e.,
+there is no notion of ``nearby'' secrets in our definition.
+
+Moreover, the focus of our work is somewhat different in providing a
+way to measure and explain leakage for arbitrary software or hardware
+designs, versus in providing a prescriptive measure to limit that
+leakage.  Notably, since differential privacy requires a statistical
+guarantee of indistinguishability for \textit{any} two nearby
+databases, it mandates a requirement that typically can be met only
+through the addition of noise artificially to the computation output.
+As such, this definition has driven considerable research on
+algorithms for adding noise to observable outputs to enforce this
+condition.
+
+
+\iffalse
+neighboring
+databases that differ only in one row.  Specifically, the $\epsilon$
+parameterizes the probability difference of outputting similar
+observables between all dataset pairs.  To some extent, the $\epsilon$
+could be treated as a measure of the "amount" of leakage from an
+algorithm.  However, a practical procedure hardly achieves the
+differential privacy with a small $\epsilon$.  On the one hand, it
+restricts the upper bound when distinguishing all pairs. A procedure
+would break the $\epsilon$-differential property, once there is one
+datasets pair breaking it. One the other hand, as a measure,
+$\epsilon$ is not fair enough for different procedures leaking in
+different patterns as it only measures the upper bound for the worst
+pair.  In contrast, we simply measure and explain the leakage, versus
+providing a prescriptive measure to limit that leakage.   
+
+Furthermore, since the differential privacy is a probabilistic
+property, it requires the known distribution and the probabilities of
+outputting each observable value condition on each secret (i.e.,
+dataset) value.  Thus, measuring the sounded $\epsilon$ used in
+differential privacy required more enumerations over all possible
+combination of observable and secret values.  
+\fi
+
+\section{Model counting}
+Solution counting, the problem of computing the number of solutions
+for a given constraint, is necessary for static analysis of \gls{QIF},
+which does not rely on empirical data. For a propositional formula,
+the counting problem is called \sharpSAT ~\cite{gomes2008model}, where
+a model is a feasible solution for \satProp.  Thus, it is a \#NP
+problem. Practical model counting techniques can be categorized to
+\textit{exact counting} and \textit{approximate counting}. 
+
+\textit{Exact model counting} tends to use DPLL-style exhaustive
+search. Specifically, it uses a backtracking algorithm to repeatedly
+search a feasible model, block it, and find a new model.  Such
+exhaustive technique is not scalable when the number of models is
+large. \textit{Approximate model counting} uses a sampling method to
+estimate the number of feasible models in the formula without
+enumerating all models. The recent hash-based model counting proposed
+by Chakraborty et al.~\cite{Chakraborty:2013:SAM:2961240.2961265}
+improves the scalability and provides a proven lower and upper bounds
+with a confidence guarantee in a statistical sense. 
+
+\subsection{Hash-based approximate model counting}
+\label{sec:related:qif:approxcount}
+The hash-based approximate model counting technique due to Chakraborty
+et al.~\cite{Chakraborty:2013:SAM:2961240.2961265} leverages a family
+of $3$-wise independent hash functions to estimate the number
+\satCount{\satProp} of satisfying assignments of a \gls{CNF}
+proposition \satProp of \satVars variables and runs in fully
+polynomial time with respect to a SAT oracle.  At a high level, this
+algorithm iteratively selects a random hash function
+$\hashPrefixFn{\hashFnOutputPrefixBits}: \{0,1\}^{\satVars}
+\rightarrow \{0,1\}^{\hashFnOutputPrefixBits}$ from a family (where
+\hashFnOutputPrefixBits changes per iteration) and a random
+$\hashFnOutputPrefix \in \{0,1\}^{\hashFnOutputPrefixBits}$, and
+computes the satisfying assignments for \satProp for which the hash of
+the assignment (a string in $\{0,1\}^{\satVars}$) is
+\hashFnOutputPrefix.  (Intuitively, this number should be about a
+$\satCount{\satProp}/2^{\hashFnOutputPrefixBits}$.)  Through judicious
+management of this iterative process, the algorithm arrives at an
+estimate \satCountEstimate{\satProp} for \satCount{\satProp} that
+satisfies  \[ \prob{}{(1+\error)^{-1}\cdot\satCount{\satProp} \le
+\satCountEstimate{\satProp} \le (1+\error)\cdot\satCount{\satProp}}
+\ge \confidence \]  where error \error, $0 < \error \le 1$, and
+confidence \confidence, $0 < \confidence \le 1$, are parameters and
+the probability is taken with respect to the random choices of the
+algorithm. 
+
+Previous \QIF-related works leveraging model counting either support
+only convex constraints
+(e.g.,~\cite{Backes:2009:ADQ:1607723.1608130,cryptoeprint:2017:401})
+and so therefore do not capture all constraints of realistic
+applications, or use exact counters
+(e.g.,~\cite{Phan:2014:AMC:2590296.2590328}) and so cannot scale to
+complex applications.  In contrast, \chapref{chap:sscf} leverage
+principled sampling-based methods for counting purposes, which we show
+can be used to expose leaks in real codebases.  \chapref{chap:sscf}
+also demonstrates a new approach for using model counting to estimate
+information leakage based on noninterference property, again deriving
+from a strategy of counting pairs of attacker-controlled inputs and
+attacker-observable outputs conditioned on secret value sets of
+different sizes, in contrast to these prior works. 
+
+\subsection{Projected model counting}
+\Gls{sharpESAT} counts feasible assignments of selected variables in a
+propositional formula.  For a realistic application, the automatically
+generated \gls{CNF} formula would introduce auxiliary variables in
+order to support the encoding of different operations. Thus, our
+counting task is projected model counting. The algorithm used in model
+counting can be applied to project model counting through a minor
+modification. In \chapref{chap:sscf}, instead of applying a hash
+constraint to all variables in the \satProp, the implementation adds a
+hash function over the counting targets \ACIFn{},\AIIFn{}, and
+\AOOFn{}. 
+

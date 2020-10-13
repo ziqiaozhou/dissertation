@@ -1,0 +1,604 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{adpwrapfig}[2013/07/28 ADP's Wrapfig Class]
+
+%Requirements.
+\RequirePackage{wrapfig,calc,needspace,etoolbox,ifthen}
+
+%Objects in this class.
+
+%Create a boolean switch, for the case when the user specifies
+%the number of lines, and, 
+
+\newcommand{\bheading}[1]{{\vspace{4pt}\noindent{\textbf{#1}}}} 
+%\usepackage[letterpaper,tmargin=4.4pc,hmargin=4.5pc,bmargin=5pc]{geometry}
+
+%\pagenumbering{arabic}
+%\renewcommand{\topfraction}{0.99}	% max fraction of floats at top
+%\renewcommand{\bottomfraction}{0.99}	% max fraction of floats at bottom
+%\renewcommand{\dbltopfraction}{0.99}	% fit big float above 2-col. text
+%\renewcommand{\textfraction}{0.01}	% allow minimal text w. figs
+%\setcounter{topnumber}{10}
+%\setcounter{bottomnumber}{10}
+%\setcounter{totalnumber}{10}     % 2 may work better
+%\setcounter{dbltopnumber}{10}    % for 2-column pages
+
+% refs
+\newcommand{\figurewidth}{\columnwidth}
+\newcommand{\secref}[1]{\mbox{Sec.~\ref{#1}}\xspace}
+\newcommand{\chapref}[1]{\mbox{Chapter~\ref{#1}}\xspace}
+\newcommand{\lineref}[1]{\mbox{Line~\ref{#1}}\xspace}
+\newcommand{\linerefs}[2]{\mbox{Lines~\ref{#1}--\ref{#2}}\xspace}
+\newcommand{\secrefs}[2]{\mbox{Sec.~\ref{#1}--\ref{#2}}\xspace}
+\newcommand{\staticsecref}[1]{\mbox{Sec.~{#1}}}
+\newcommand{\figref}[1]{\mbox{Fig.~\ref{#1}}\xspace}
+\newcommand{\tabref}[1]{\mbox{Table~\ref{#1}}\xspace}
+\newcommand{\appref}[1]{\mbox{Appendix~\ref{#1}}\xspace}
+\newcommand{\eqnref}[1]{\mbox{(\ref{#1})}\xspace}
+\newcommand{\eqnsref}[2]{\mbox{(\ref{#1})--(\ref{#2})}\xspace}
+\newcommand{\ignore}[1]{}
+
+%terminology and formatting
+\newcounter{note}[section]
+\newcommand{\fixmecolor}{red}
+\newcommand{\notecolor}{blue}
+\renewcommand{\thenote}{\thesection.\arabic{note}}
+\newcommand{\mkr}[1]{\refstepcounter{note}{\bf \textcolor{\fixmecolor}{$\ll$MKR~\thenote: {\sf #1}$\gg$}}}
+\newcommand{\zz}[1]{\refstepcounter{note}{\bf \textcolor{\notecolor}{$\ll$ZZ~\thenote: {\sf #1}$\gg$}}}
+
+% units
+\newcommand{\bytes}{\ensuremath{\mathrm{B}}\xspace}
+\newcommand{\gigabits}{\ensuremath{\mathrm{Gb}}\xspace}
+\newcommand{\kilobytes}{\ensuremath{\mathrm{KB}}\xspace}
+\newcommand{\megabytes}{\ensuremath{\mathrm{MB}}\xspace}
+\newcommand{\gigabytes}{\ensuremath{\mathrm{GB}}\xspace}
+\newcommand{\kibibytes}{\ensuremath{\mathrm{KiB}}\xspace}
+\newcommand{\mebibytes}{\ensuremath{\mathrm{MiB}}\xspace}
+\newcommand{\gibibytes}{\ensuremath{\mathrm{GiB}}\xspace}
+\newcommand{\gigahertz}{\ensuremath{\mathrm{GHz}}\xspace}
+\newcommand{\secs}{\ensuremath{\mathrm{s}}\xspace}
+\newcommand{\millisecs}{\ensuremath{\mathrm{ms}}\xspace}
+\newcommand{\microsecs}{\ensuremath{\mu\mathrm{s}}\xspace}
+\newcommand{\days}{\ensuremath{\mathrm{d}}\xspace}
+\newcommand{\mins}{\ensuremath{\mathrm{m}}\xspace}
+\newcommand{\hours}{\ensuremath{\mathrm{h}}\xspace}
+% units
+\newcommand{\cycles}{\ensuremath{\mathrm{cycles}}\xspace}
+% math
+\newcommand{\cprob}[4]{\ensuremath{\mathbb{P}_{#2}#1(}{#3}\ensuremath{\;#1|} \ifmmode{\;}\fi {#4}\ensuremath{#1)}\xspace}
+%\newcommand{\prob}[1]{\ensuremath{\mathbb{P}\left({#1}\right)}\xspace}
+\newcommand{\prob}[2]{\ensuremath{\mathbb{P}_{#1}\left({#2}\right)}\xspace}
+\newcommand{\expv}[1]{\ensuremath{\mathbb{E}\left({#1}\right)}\xspace}
+\newcommand{\nats}{\ensuremath{\mathbb{N}}\xspace}
+\newcommand{\ints}{\ensuremath{\mathbb{Z}}\xspace}
+\newcommand{\reals}{\ensuremath{\mathbb{R}}\xspace}
+\newcommand{\getsr}{\;\stackrel{\$}{\leftarrow}\;}
+\newcommand{\setSize}[1]{\ensuremath{\left|{#1}\right|}\xspace}
+\newcommand{\boolTrue}{\ensuremath{\mathrm{true}}\xspace}
+\newcommand{\boolFalse}{\ensuremath{\mathrm{false}}\xspace}
+
+\DeclareMathOperator*{\avg}{avg}
+\newcommand*\ShiftLeft{\ll}
+\newcommand*\ShiftRight{\gg}
+\newcommand{\what}{\textit{what}\xspace}
+\newcommand{\when}{\textit{when}\xspace}
+\newcommand{\cause}{{decomposed interference}}
+\newcommand{\modelLeak}{\ensuremath{\mathbb{M}}\xspace}
+\newcommand{\smt}{\texttt{SMT}\xspace}
+\newcommand{\jif}{\texttt{Jif}\xspace}
+
+% paper-specific macros for cachebar
+
+\newcommand{\evicttime}{\textsc{Evict+Time}\xspace}
+\newcommand{\flushreload}{\textsc{Flush+Reload}\xspace}
+\newcommand{\flushflush}{\textsc{Flush+Flush}\xspace}
+\newcommand{\Flush}{\textsc{Flush}\xspace}
+\newcommand{\Reload}{\textsc{Reload}\xspace}
+\newcommand{\primeprobe}{\textsc{Prime+Probe}\xspace}
+\newcommand{\Prime}{\textsc{Prime}\xspace}
+\newcommand{\Probe}{\textsc{Probe}\xspace}
+\newcommand{\clflush}{\function{clflush}}
+\newcommand{\fork}{\function{fork}}
+\newcommand{\executable}[1]{\texttt{#1}\xspace}
+\newcommand{\function}[1]{\texttt{#1}\xspace}
+\newcommand{\LLC}{\gls{LLC}\xspace}
+\newcommand{\COA}{\gls{COA}\xspace}
+\newcommand{\LRU}{\texttt{NC}\xspace}
+\newcommand{\PCD}{\gls{PCD}\xspace}
+\newcommand{\PWT}{\textmd{PWT}\xspace}
+\newcommand{\CD}{\gls{PCD}\xspace}
+\newcommand{\NW}{\textmd{PWT}\xspace}
+\newcommand{\PAT}{\gls{PAT}\xspace}
+\newcommand{\MTRR}{\gls{MTRR}\xspace}
+\newcommand{\CR}{\gls{CR}\xspace}
+\newcommand{\UC}{\gls{UC}\xspace}
+\newcommand{\UCminus}{\gls{UCminus}\xspace}
+\newcommand{\WT}{\gls{WT}\xspace}
+\newcommand{\WC}{\gls{WC}\xspace}
+\newcommand{\WB}{\gls{WB}}
+\newcommand{\WP}{\gls{WP}\xspace}
+\newcommand{\KSM}{\gls{KSM}\xspace}
+\newcommand{\cachebar}{\textsc{CacheBar}\xspace}
+\newcommand{\cachebarLong}{Cache Barrier\xspace}
+\newcommand{\docker}{Docker\xspace}
+\newcommand{\lru}{cacheable queue\xspace}
+\newcommand{\coa}{copy-on-access\xspace}
+\newcommand{\cow}{copy-on-write\xspace}
+\newcommand{\tenant}{Container\xspace}
+\newcommand{\domain}{\textit{security domain}\xspace}
+\newcommand{\object}{security object\xspace}
+\newcommand{\unmapped}{\textsc{unmapped}\xspace}
+\newcommand{\exclusive}{\textsc{exclusive}\xspace}
+\newcommand{\shared}{\textsc{shared}\xspace}
+\newcommand{\accessed}{\textsc{accessed}\xspace}
+\newcommand{\accessedTimeout}{\ensuremath{\Delta{T}_{\mathsf{acc}}}\xspace}
+\newcommand{\copyTimeout}{\ensuremath{\Delta{T}_{\mathsf{copy}}}\xspace}
+\newcommand{\nonshared}{\texttt{domain-unshared}\xspace}
+\newcommand{\private}{\texttt{\domain-private}\xspace}
+\newcommand{\vpage}{virtual page\xspace}
+\newcommand{\ppage}{physical frame\xspace}
+\newcommand{\vaddr}{virtual address\xspace}
+\newcommand{\paddr}{physical address\xspace}
+\newcommand{\pfn}{page frame number\xspace}
+\newcommand{\pte}{page table entry\xspace}
+\newcommand{\pat}{page attribute table\xspace}
+\newcommand{\vma}{virtual memory area\xspace}
+\newcommand{\VMCOA}{\textsc{VM\_COA}}
+\newcommand{\container}{container\xspace}
+\newcommand{\sysobject}{\textsc{process}\xspace}
+\newcommand{\sysdomain}{\textsc{container}(\textsc{tenant})\xspace}
+\newcommand{\pcounterincontainer}{\texttt{counter}\xspace}
+\newcommand{\pcounterincontainers}[2]{\texttt{counter[{#1},{#2}]}\xspace}
+\newcommand{\originalpagelist}{\texttt{original\_list}\xspace}
+\newcommand{\copypagelist}{\texttt{copy\_list}\xspace}
+\newcommand{\listhead}{\texttt{list\_head}\xspace}
+\newcommand{\mapcount}{\texttt{\_mapcount}\xspace}
+\newcommand{\original}{\texttt{original}\xspace}
+\newcommand{\owner}{\texttt{owner}\xspace}
+
+%first argument of \cprob and \cexpv can be any of \big, \Big, \bigg, \Bigg
+
+\newcommand{\genericEvent}{\ensuremath{E}\xspace}
+\newcommand{\victimDemand}{\ensuremath{d}\xspace}
+\newcommand{\victimDemandAlt}{\ensuremath{d'}\xspace}
+\newcommand{\attackerLineNmbr}{\ensuremath{\linesPerContainer{\attackerLabel}}\xspace}
+\newcommand{\attackerLineNmbrRV}{\ensuremath{\linesPerContainerRV{\attackerLabel}}\xspace}
+\newcommand{\victimLineNmbr}{\ensuremath{\linesPerContainer{\victimLabel}}\xspace}
+\newcommand{\victimLineNmbrRV}{\ensuremath{\linesPerContainerRV{\victimLabel}}\xspace}
+
+% MKR -- Do we need all of these?
+%%%%
+\newcommand{\blockBytes}{\ensuremath{\mathit{bbytes}}\xspace}
+\newcommand{\memAddr}{\ensuremath{\mathit{paddr}}\xspace}
+\newcommand{\blockAddr}{\ensuremath{\mathit{baddr}}\xspace}
+\newcommand{\cacheLineNmbr}{\ensuremath{w}\xspace}
+\newcommand{\cachesetNmbr}{\ensuremath{c}\xspace}
+\newcommand{\cachesetIdx}{\ensuremath{j}\xspace}
+\newcommand{\wayIdx}{\ensuremath{k}\xspace}
+\newcommand{\wayIdxAlt}{\ensuremath{k'}\xspace}
+%%%%%
+
+\newcommand{\attackerNmbr}{\ensuremath{m}\xspace}
+\newcommand{\containerNmbr}{\ensuremath{N}\xspace}
+\newcommand{\containerIdx}{\ensuremath{i}\xspace}
+\newcommand{\colorNmbr}{\ensuremath{c}\xspace}
+\newcommand{\containerIdxAlt}{\ensuremath{i'}\xspace}
+\newcommand{\linesPerContainer}[1]{\ensuremath{k_{#1}}\xspace}
+\newcommand{\linesPerContainerRV}[1]{\ensuremath{K_{#1}}\xspace}
+\newcommand{\attackerLabel}{\ensuremath{\mathsf{a}}\xspace}
+\newcommand{\victimLabel}{\ensuremath{\mathsf{v}}\xspace}
+\newcommand{\evictedNmbr}{\ensuremath{x}\xspace}
+\newcommand{\evictedNmbrRV}{\ensuremath{X}\xspace}
+%\newcommand{\securityWeight}{\ensuremath{\gamma}\xspace}
+\newcommand{\maxSecValue}{\ensuremath{\varphi}\xspace}
+\newcommand{\maxPerfValue}{\ensuremath{\alpha}\xspace}
+\newcommand{\balanceSlack}{\ensuremath{\rho}\xspace}
+\newcommand{\balanceValue}{\ensuremath{u}\xspace}
+\newcommand{\physPageIdx}{\ensuremath{j}\xspace}
+\newcommand{\classifiedRV}{\ensuremath{\mathsf{class}}\xspace}
+\newcommand{\demandClassRV}{\ensuremath{\mathsf{demand}}\xspace}
+\newcommand{\classNone}{\textsc{none}\xspace}
+\newcommand{\classOne}{\textsc{one}\xspace}
+\newcommand{\classFew}{\textsc{few}\xspace}
+\newcommand{\classSome}{\textsc{some}\xspace}
+\newcommand{\classLots}{\textsc{lots}\xspace}
+\newcommand{\classMost}{\textsc{most}\xspace}
+\newcommand{\classId}{\ensuremath{c}\xspace}
+\newcommand{\classIdAlt}{\ensuremath{c'}\xspace}
+
+\newcommand{\spin}{\texttt{Spin}\xspace}
+
+\newcommand{\naive}{na\"{i}ve}
+
+% Heatmap table defs
+\ExplSyntaxOn
+\fp_new:N \MinVal
+\fp_new:N \MaxVal
+
+\cs_new:Npn \intensity #1
+   { \fp_eval:n
+     { 0.5 + (0.5 * ({#1}-\MinVal)/(\MaxVal-\MinVal))
+     }
+   }
+\ExplSyntaxOff
+
+\newcommand{\ApplyGradientN}[1]{\cellcolor[gray]{\intensity{\MaxVal-{#1}}}{\parbox{2.4em}{\raggedleft {#1}}}}
+\newcommand{\ApplyGradientR}[1]{\cellcolor[gray]{\intensity{#1}}{#1}}
+\newcommand{\ApplyGradientT}[1]{\cellcolor[gray]{\intensity{#1}}{#1}}
+\newcolumntype{N}{>{\collectcell\ApplyGradientN}c<{\endcollectcell}}
+\newcolumntype{R}{>{\collectcell\ApplyGradientR}c<{\endcollectcell}}
+\newcolumntype{T}{>{\collectcell\ApplyGradientT}c<{\endcollectcell}}
+
+%%%%%%%%%%%%%%%%%
+
+\newcommand{\proc}{\ensuremath{\mathit{proc}}\xspace}
+\newcommand{\sat}{\gls{SAT}\xspace}
+\newcommand{\FnDomain}[1]{\ensuremath{\mathit{Vars_{#1}}}\xspace}
+\newcommand{\FnRange}[1]{\ensuremath{\mathit{Vals_{#1}}}\xspace}
+
+\newcommand{\ACIFn}[1]{\ensuremath{\mathsf{C}_{#1}}\xspace}
+\newcommand{\ACIFnAlt}[1]{\ensuremath{\mathsf{C}'_{#1}}\xspace}
+\newcommand{\ACIVar}{\ensuremath{\mathit{cvar}}\xspace}
+\newcommand{\ACIKeys}{\ensuremath{\FnDomain{\ACIFn{}}}\xspace}
+\newcommand{\ACIVal}{\ensuremath{c}\xspace}
+\newcommand{\ACIVals}{\ensuremath{\FnRange{\ACIFn{}}}\xspace}
+
+\newcommand{\AIIFn}[1]{\ensuremath{\mathsf{I}_{#1}}\xspace}
+\newcommand{\AIIFnAlt}[1]{\ensuremath{\mathsf{I}'_{#1}}\xspace}
+\newcommand{\AIIFnAltAlt}[1]{\ensuremath{\mathsf{I}''_{#1}}\xspace}
+\newcommand{\AIIVal}{\ensuremath{i}\xspace}
+\newcommand{\AIIVar}{\ensuremath{\mathit{ivar}}\xspace}
+\newcommand{\AIIKeys}{\ensuremath{\FnDomain{\AIIFn{}}}\xspace}
+\newcommand{\AIIVals}{\ensuremath{\FnRange{\AIIFn{}}}\xspace}
+
+\newcommand{\AOOFn}[1]{\ensuremath{\mathsf{O}_{#1}}\xspace}
+\newcommand{\AOOFnAlt}[1]{\ensuremath{\mathsf{O}'_{#1}}\xspace}
+\newcommand{\AOOFnAltAlt}[1]{\ensuremath{\mathsf{O}''_{#1}}\xspace}
+\newcommand{\AOOVar}{\ensuremath{\mathit{ovar}}\xspace}
+\newcommand{\AOOKeys}{\ensuremath{\FnDomain{\AOOFn{}}}\xspace}
+\newcommand{\AOOVals}{\ensuremath{\FnRange{\AOOFn{}}}\xspace}
+
+\newcommand{\SecFn}[1]{\ensuremath{\mathsf{S}_{#1}}\xspace}
+\newcommand{\SecFnAlt}[1]{\ensuremath{\mathsf{S}'_{#1}}\xspace}
+\newcommand{\SecFnAltAlt}[1]{\ensuremath{\mathsf{S}''_{#1}}\xspace}
+\newcommand{\SecVar}{\ensuremath{\mathit{svar}}\xspace}
+\newcommand{\SecKeys}{\ensuremath{\FnDomain{\SecFn{}}}\xspace}
+\newcommand{\SecVals}{\ensuremath{\FnRange{\SecFn{}}}\xspace}
+
+\newcommand{\DCFn}[1]{\ensuremath{\mathsf{\Delta}_{#1}}\xspace}
+\newcommand{\DCVar}{\ensuremath{\mathit{dvar}}\xspace}
+
+\newcommand{\ACIFnAccess}[1]{\ensuremath{\hat{\mathsf{C}}_{#1}}\xspace}
+\newcommand{\AIIFnAccess}[1]{\ensuremath{\hat{\mathsf{I}}_{#1}}\xspace}
+\newcommand{\SecFnAccess}[1]{\ensuremath{\hat{\mathsf{S}}_{#1}}\xspace}
+\newcommand{\HwFnAccess}[2]{\ensuremath{\hat{\mathsf{H}}_{#1}^{#2}}\xspace}
+\newcommand{\ncyclesAccess}{\ensuremath{\hat{T}}\xspace}
+
+\newcommand{\secretVar}{\textrm{`secret'}\xspace}
+%\newcommand{\secretVar}{\textrm{`secret'}\xspace}
+%\newcommand{\controlVar}{\textrm{`control'}\xspace}
+%\newcommand{\outVar}{\textrm{`out'}\xspace}
+\newcommand{\coinsVar}{\textrm{`coins'}\xspace}
+\newcommand{\secretVal}{\ensuremath{s}\xspace}
+\newcommand{\secretValAlt}{\ensuremath{s'}\xspace}
+\newcommand{\minSecretVal}{\ensuremath{s_{\mathsf{min}}}\xspace}
+\newcommand{\maxSecretVal}{\ensuremath{s_{\mathsf{max}}}\xspace}
+\newcommand{\minSecretValAlt}{\ensuremath{s'_{\mathsf{min}}}\xspace}
+\newcommand{\maxSecretValAlt}{\ensuremath{s'_{\mathsf{max}}}\xspace}
+\newcommand{\secretValResidue}{\ensuremath{r}\xspace}
+\newcommand{\secretsDomain}{\ensuremath{\mathbb{S}}\xspace}
+\newcommand{\secretsSet}[1]{\ensuremath{S_{#1}}\xspace}
+\newcommand{\secretsSetAlt}[1]{\ensuremath{S_{#1}'}\xspace}
+\newcommand{\secretsSetAltAlt}[1]{\ensuremath{S_{#1}''}\xspace}
+\newcommand{\secretsSetSize}{\ensuremath{n}\xspace}
+\newcommand{\secretsSetSizeAlt}{\ensuremath{n'}\xspace}
+\newcommand{\secretsSetSizeAltAlt}{\ensuremath{n''}\xspace}
+\newcommand{\secretsSubsetSize}{\ensuremath{m}\xspace}
+\newcommand{\secretsSetSizeMin}[1]{\ensuremath{\eta^{\textrm{min}}_{#1}}\xspace}
+\newcommand{\secretsSetSizeMax}[1]{\ensuremath{\eta^{\textrm{max}}_{#1}}\xspace}
+\newcommand{\secretsSetSizeMinRand}[1]{\ensuremath{\hat{\eta}^{\textrm{min}}_{#1}}\xspace}
+\newcommand{\secretsSetSizeMaxRand}[1]{\ensuremath{\hat{\eta}^{\textrm{max}}_{#1}}\xspace}
+\newcommand{\logSecretsSetSizeMin}{\ensuremath{\log_2{\secretsSetSizeMin{}}}\xspace}
+\newcommand{\logSecretsSetSizeMinRand}{\ensuremath{\log_2{\secretsSetSizeMinRand{}}}\xspace}
+\newcommand{\logSecretsSetSizeMax}{\ensuremath{\log_2{\secretsSetSizeMax{}}}\xspace}
+\newcommand{\logSecretsSetSizeMaxRand}{\ensuremath{\log_2{\secretsSetSizeMaxRand{}}}\xspace}
+\newcommand{\secretSetLeak}{\classesUnion}
+\newcommand{\secretSizePerClass}{\classesSize}
+\newcommand{\logSecretNmbr}{\ensuremath{\ell}\xspace}
+\newcommand{\logSecretsSetSize}{\ensuremath{k}\xspace}
+\newcommand{\postcondition}[2]{\ensuremath{\Pi_{#1}^{#2}}\xspace}
+
+\newcommand{\possibleTriples}[1]{\ensuremath{X_{#1}}\xspace}
+
+
+\newcommand{\possibleTriplesByPrefix}[2]{\ensuremath{X_{#1}^{#2}}\xspace}
+\newcommand{\possibleDoubles}[1]{\ensuremath{Y_{#1}}\xspace}
+\newcommand{\possibleDoublesByPrefix}[2]{\ensuremath{Y_{#1}^{#2}}\xspace}
+\newcommand{\possibleDoublesSubset}[3]{\ensuremath{Z_{{#1},{#2}}^{#3}}\xspace}
+\newcommand{\possibleTriplesIntersect}[2]{\ensuremath{\hat{X}_{{#1},{#2}}}\xspace}
+\newcommand{\possibleTriplesDiff}[2]{\ensuremath{\tilde{X}_{{#1},{#2}}}\xspace}
+\newcommand{\possibleTriplesUnion}[2]{\ensuremath{\check{X}_{{#1},{#2}}}\xspace}
+
+\newcommand{\possibleTriplesWithDeclass}[1]{\ensuremath{X^{\delta}_{#1}}\xspace}
+\newcommand{\possibleTriplesIntersectWithDeclass}[2]{\ensuremath{\hat{X}^{\delta}_{{#1},{#2}}}\xspace}
+\newcommand{\possibleTriplesUnionWithDeclass}[2]{\ensuremath{\check{X}^{\delta}_{{#1},{#2}}}\xspace}
+\newcommand{\possibleTriplesDiffWithDeclass}[2]{\ensuremath{\tilde{X}^{\delta}_{{#1},{#2}}}\xspace}
+\newcommand{\IntersectWithDeclassSubset}[3]{\ensuremath{\hat{Z}^{#3}_{{#1},{#2}}}\xspace}
+\newcommand{\UnionWithDeclassSubset}[3]{\ensuremath{\check{Z}^{#3}_{{#1},{#2}}}\xspace}
+\newcommand{\possibleTriplesDiffWithDeclassSubset}[3]{\ensuremath{\tilde{Z}^{#3}_{{#1},{#2}}}\xspace}
+
+\newcommand{\possibleDoubleWithDeclass}[1]{\ensuremath{Y_{#1}^{\delta}}\xspace}
+\newcommand{\possibleDeclass}[1]{\ensuremath{D_{#1}^{\delta}}\xspace}
+
+\newcommand{\possibleDiff}[1]{\ensuremath{\overset{\Delta}{W}_{#1}}\xspace}
+\newcommand{\possibleSame}[1]{\ensuremath{\hat{W}_{#1}}\xspace}
+\newcommand{\possibleTriplesIntersectByPrefix}[1]{\ensuremath{\hat{X}_{#1}}\xspace}
+\newcommand{\round}{\ensuremath{r}\xspace}
+\newcommand{\Jaccard}[1]{\ensuremath{J_{#1}}\xspace}
+\newcommand{\JaccardThreshold}{\ensuremath{t}\xspace}
+\newcommand{\JaccardThresholdInc}{\ensuremath{\Delta}\xspace}
+\newcommand{\JaccardThresholdIncIdx}{\ensuremath{i}\xspace}
+\newcommand{\JaccardMax}{\ensuremath{J^{\textrm{max}}}\xspace}
+\newcommand{\JaccardRand}[1]{\ensuremath{\hat{J}_{#1}}\xspace}
+\newcommand{\JaccardWithDeclass}[1]{\ensuremath{\hat{J}^{\declassify{}}_{#1}}\xspace}
+\newcommand{\sumJaccard}{\ensuremath{\mathcal{J}}\xspace}
+\newcommand{\approxSumJaccard}{\ensuremath{\tilde{\mathcal{J}}}\xspace}
+\newcommand{\classesNmbr}{\ensuremath{c}\xspace}
+\newcommand{\classesSize}{\ensuremath{w}\xspace}
+\newcommand{\classesRepd}[1]{\ensuremath{C_{#1}}\xspace}
+\newcommand{\classIdx}{\ensuremath{i}\xspace}
+\newcommand{\classVar}{\classesRepd{}}
+\newcommand{\classVal}{\classIdx}
+\newcommand{\classIndRV}[1]{\ensuremath{X_{#1}}\xspace}
+\newcommand{\class}[1]{\ensuremath{\mathbb{C}_{#1}}\xspace}
+\newcommand{\classesUnion}{\ensuremath{\class{}}\xspace}
+\newcommand{\largeClassesRepd}[1]{\ensuremath{\classesRepd{#1}^{\textsf{lg}}}}
+\newcommand{\smallClassesRepd}[1]{\ensuremath{\classesRepd{#1}^{\textsf{sm}}}}
+\newcommand{\longW}{\left(1-\frac{\classesSize}{\setSize{\secretsDomain}}\right)^{\secretsSetSize}}
+
+
+
+\newcommand{\hashFn}{\ensuremath{H}\xspace}
+\newcommand{\hashPrefixFn}[1]{\ensuremath{\hashFn^{#1}}\xspace}
+\newcommand{\hashPrefixFnAlt}[1]{\ensuremath{\hat{\hashFn}^{#1}}\xspace}
+\newcommand{\hashPrefixFnForUnion}[1]{\ensuremath{\check{\hashFn}^{#1}}\xspace}
+\newcommand{\hashPrefixFnForIntersect}[1]{\ensuremath{\hat{\hashFn}^{#1}}\xspace}
+\newcommand{\hashFnOutputPrefix}{\ensuremath{p}\xspace}
+\newcommand{\hashFnOutputPrefixAlt}{\ensuremath{\hat{\hashFnOutputPrefix}}\xspace}
+\newcommand{\hashFnOutputPrefixBits}{\ensuremath{b}\xspace}
+\newcommand{\hashFnOutputPrefixBitsForUnion}{\ensuremath{\check{b}}\xspace}
+\newcommand{\hashFnOutputPrefixBitsForIntersect}{\ensuremath{\hat{b}}\xspace}
+\newcommand{\hashFnOutputPrefixForIntersect}{\ensuremath{\hat{p}}\xspace}
+\newcommand{\hashFnOutputPrefixForUnion}{\ensuremath{\check{p}}\xspace}
+
+\newcommand{\hashFnOutputPrefixBitsAlt}{\ensuremath{\hat{b}}\xspace}
+\newcommand{\concat}[2]{\ensuremath{{#1}||{#2}}\xspace}
+\newcommand{\error}{\ensuremath{\epsilon}\xspace}
+\newcommand{\confidence}{\ensuremath{\delta}\xspace}
+\newcommand{\hashFnFamily}{\ensuremath{\mathcal{H}}\xspace}
+
+\newcommand{\satPropIntersect}{\ensuremath{\hat{F}}\xspace}
+\newcommand{\satPropUnion}{\ensuremath{\check{F}}\xspace}
+\newcommand{\satProp}{\ensuremath{F}\xspace}
+\newcommand{\satVars}{\ensuremath{v}\xspace}
+\newcommand{\satCount}[1]{\ensuremath{\#{#1}}\xspace}
+\newcommand{\satCountEstimate}[1]{\ensuremath{\tilde{\#}{#1}}\xspace}
+
+
+\newcommand{\hashFnOutputPrefixBitsTree}{\ensuremath{T}\xspace}
+\newcommand{\hashFnOutputPrefixBitsMax}{\ensuremath{B}\xspace}
+\newcommand{\pivot}{\ensuremath{\alpha}\xspace}
+
+\newcommand{\roundNmbr}{\ensuremath{r}\xspace}
+\newcommand{\roundIdx}{\ensuremath{j}\xspace}
+\newcommand{\glueConstraints}[2]{\ensuremath{\Gamma_{#1}^{#2}}\xspace}
+\newcommand{\QIF}{\gls{QIF}\xspace}
+\newcommand{\qif}{\textit{Quantitative information flow}\xspace}
+\newcommand{\sharpSAT}{\gls{sharpSAT}}
+\newcommand{\sharpESAT}{\gls{sharpESAT}}
+\newcommand{\klee}{\texttt{KLEE}\xspace}
+\newcommand{\stwoe}{\texttt{S2E}\xspace}
+\newcommand{\jpf}{\texttt{JPF}\xspace}
+\newcommand{\cbmc}{\texttt{CBMC}\xspace}
+\newcommand{\thirdsysname}{\textsc{DINoMe}\xspace}
+\newcommand{\thirdsysnameLong}{\underline{D}eclassification and \underline{I}nterpretability for \underline{No}ninterference \underline{Me}asurement\xspace}
+\newcommand{\sphinx}{\texttt{Sphinx}\xspace}
+%\newcommand{\pathCondition}[1]{\ensuremath{\mathit{PC}_{#1}}\xspace}
+%\newcommand{\pathIdx}{\ensuremath{i}\xspace}
+%\newcommand{\pc}{\ensuremath{pc}\xspace}
+
+%%format db table
+ \renewcommand{\dtldisplaystarttab}{\toprule}
+\renewcommand{\dtldisplayafterhead}{\midrule}
+\renewcommand{\dtldisplayendtab}{\\\bottomrule}
+
+% Examples and case studies
+\newcommand{\modulus}{\ensuremath{M}\xspace}
+\newcommand{\crime}{\gls{CRIME}\xspace}
+\newcommand{\smaz}{\texttt{Smaz}\xspace}
+\newcommand{\gzip}{\texttt{Gzip}\xspace}
+\newcommand{\muEntropy}{mutual entropy\xspace}
+\newcommand{\minEntropy}{min-entropy\xspace}
+\newcommand{\entropy}[1]{\ensuremath{\mathit{H}(#1)}\xspace}
+
+\newcommand{\bigO}{\mathcal{O}}
+
+
+% Proposal
+
+\newcommand{\spectre}{\textsc{Spectre}\xspace}
+\newcommand{\meltdown}{\textsc{Meltdown}\xspace}
+\newcommand{\miss}[1]{\ensuremath{\mathit{miss}_{#1}}\xspace}
+\newcommand{\usedCacheLinesFn}[1]{\ensuremath{\mathtt{L_{#1}}}\xspace}
+\newcommand{\vaddrVar}{\ensuremath{\mathit{vaddr}}\xspace}
+\newcommand{\cachelineSize}{\ensuremath{64}\xspace}
+\newcommand{\ScatterCachecachesetIdxFn}{\ensuremath{\mathtt{Set}}\xspace}
+
+\newcommand{\declassify}[1]{\ensuremath{\delta_{\mbox{#1}}}\xspace}
+\newcommand{\declassifyVar}{\ensuremath{\text{`info'}}\xspace}
+\newcommand{\declassifyLo}{\ensuremath{i}\xspace}
+\newcommand{\declassifyHi}{\ensuremath{j}\xspace}
+\newcommand{\conditionIdx}{\ensuremath{i}\xspace}
+\newcommand{\condition}[1]{\ensuremath{\mathtt{cond_{#1}}}\xspace}
+\newcommand{\predictedCondition}[1]{\ensuremath{\mathtt{pcond_{#1}}}\xspace}
+\newcommand{\possibleDeclassifiedTriples}[3]{\ensuremath{X_{#3}^{{#1},{#2}}}\xspace}
+\newcommand{\possibleDeclassifiedTriplesIntersect}[1]{\ensuremath{\overset{\wedge}{D}_{#1}}\xspace}
+\newcommand{\possibleDeclassifiedTriplesUnion}[1]{\ensuremath{\overset{\vee}{D}_{#1}}\xspace}
+\newcommand{\possibleDeclassifiedTriplesDiff}[1]{\ensuremath{\overset{\Delta}{D}_{#1}}\xspace}
+\newcommand{\JaccardDeclassify}[2]{\ensuremath{\bar{J}_{#1}^{#2}}\xspace}
+
+% Used tools
+\newcommand{\yice}{\texttt{Yice2}}
+\newcommand{\yosys}{\textsc{Yosys}\xspace}
+\newcommand{\cryptominisat}{\texttt{CryptoMiniSAT 5.0}\xspace}
+\newcommand{\zthree}{\texttt{z3}\xspace}
+% Related works
+\newcommand{\SPEECHMINER}{\textsc{SPEECHMINER}\xspace}
+\newcommand{\SecVerilog}{{SecVerilog}\xspace}
+
+% Interpretable Model
+\newcommand{\noninterferenceSet}{\ensuremath{\mathit{NS}}\xspace}
+\newcommand{\noninterferenceSetSamples}{\ensuremath{\hat{\noninterferenceSet}}\xspace}
+\newcommand{\interferenceSet}{\ensuremath{\mathit{IS}}\xspace}
+\newcommand{\interferenceSetSamples}{\ensuremath{\hat{\interferenceSet}}\xspace}
+\newcommand{\noninterferenceRule}[1]{\ensuremath{{\hat\gamma}_{#1}}\xspace}
+\newcommand{\noninterferenceRuleUnion}{\ensuremath{\hat{R}}\xspace}
+
+\newcommand{\interferenceRule}[1]{\ensuremath{{\tilde{\gamma}}_{#1}}}
+\newcommand{\interferenceRuleUnion}{\ensuremath{\tilde{R}}\xspace}
+\newcommand{\Rule}{\ensuremath{\gamma}\xspace}
+
+\newcommand{\SkopeRule}{\textsc{Skope-rules}\xspace}
+% different cache work
+\newcommand{\scatterCache}{\textsc{ScatterCache}\xspace}
+\newcommand{\phantomCache}{\textsc{PhantomCache}\xspace}
+% used in performance eval...
+\newcommand{\normalCache}{Cache\xspace}
+\newcommand{\scatterCacheAbbr}{\textsc{Scatter}\xspace}
+\newcommand{\phantomCacheAbbr}{\textsc{Phantom}\xspace}
+
+%Hardware Macro
+
+\newcommand{\cycle}{\ensuremath{t}\xspace}
+\newcommand{\nextCycle}{\ensuremath{t+1\uparrow}\xspace}
+\newcommand{\nextNextCycle}{\ensuremath{t+2\uparrow}\xspace}
+
+\newcommand{\boom}{\textsc{BOOM}\xspace}
+\newcommand{\ncycles}{\ensuremath{T}\xspace}
+\newcommand{\ncyclesAlt}{\ensuremath{T'}\xspace}
+% Cache-based sidechannel Evaluation
+\newcommand{\block}[1]{\ensuremath{\mathit{block}_{#1}}\xspace}
+\newcommand{\blockNmbr}{\ensuremath{m}\xspace}
+\newcommand{\blockIdx}{\ensuremath{\ell}\xspace}
+\newcommand{\blockIdxVar}{\ensuremath{\textrm{`blockIdx'}}\xspace}
+\newcommand{\accessProc}{\ensuremath{\mathit{acc}}\xspace}
+\newcommand{\hitVar}{\ensuremath{\textrm{`hit'}}\xspace}
+\newcommand{\loadVar}{\ensuremath{\textrm{`load'}}\xspace}
+
+\newcommand{\addr}{\textrm{addr}\xspace}
+\newcommand{\addrIdx}{\ensuremath{\mathtt{i}}\xspace}
+\newcommand{\nControlledMem}{\ensuremath{m}\xspace}
+\newcommand{\hitProc}[1]{\ensuremath{\mathit{atk}_{#1}}\xspace}
+\newcommand{\symFn}[1]{\ensuremath{\mathsf{Sym}_{#1}}\xspace}
+\newcommand{\meta}{\ensuremath{\texttt{meta}}\xspace}
+\newcommand{\hitRegisterVar}{\ensuremath{\texttt{s2\_hits}}\xspace}
+\newcommand{\loadsVar}[1]{\ensuremath{\texttt{loads}#1}\xspace}
+\newcommand{\loadWaysVar}[1]{\ensuremath{\texttt{loadWays}#1}\xspace}
+\newcommand{\initCycle}{\ensuremath{\mathit{0}}\xspace}
+\newcommand{\finalCycle}{\ensuremath{\mathit{\ncycles}}\xspace}
+\newcommand{\scatter}{\textsc{scatter}\xspace}
+\newcommand{\scatterSet}{\textsc{sc-set}\xspace}
+
+\newcommand{\phantomR}{\ensuremath{\mathit{r}}\xspace}
+\newcommand{\HwFn}[2]{\ensuremath{\mathsf{H}_{#1}^{#2}}\xspace}
+\newcommand{\HwFnAlt}[2]{\ensuremath{\mathsf{\hat{H}}_{#1}^{#2}}\xspace}
+\newcommand{\HwKeys}{\ensuremath{\FnDomain{\HwFn{}{}}}\xspace}
+\newcommand{\HwVals}{\ensuremath{\FnRange{\HwFn{}{}}}\xspace}
+\newcommand{\HwVar}{\ensuremath{\mathit{hvar}}\xspace}
+\newcommand{\HwPostcondition}[2]{\ensuremath{\mathsf{\Psi}_{#1}^{#2}}\xspace}
+\newcommand{\TmpFn}[2]{\ensuremath{\mathsf{H}_{#1}^{#2}}\xspace}
+\newcommand{\TmpVar}{\ensuremath{\mathit{hvar}}\xspace}
+\newcommand{\TmpKeys}{\ensuremath{\FnDomain{\AOOFn{}}}\xspace}
+\newcommand{\TmpVals}{\ensuremath{\FnRange{\AOOFn{}}}\xspace}
+\newcommand{\TmpTransConstraints}[1]{\ensuremath{\tau_{#1}}\xspace}
+\newcommand{\match}{\ensuremath{\textsc{Match}}\xspace}
+\newcommand{\cachemiss}{\ensuremath{\textsc{CacheMiss}}\xspace}
+% ModExp
+\newcommand{\plaintext}{\ensuremath{\mathit{b}}\xspace}
+\newcommand{\precomputedPlaintext}[1]{\ensuremath{\mathit{b[{#1}]}}\xspace}
+\newcommand{\privK}[1]{\ensuremath{\mathit{d_{#1}}}\xspace}
+\newcommand{\encrypted}{\ensuremath{\mathit{e}}\xspace}
+\newcommand{\window}{\ensuremath{\mathit{W}}\xspace}
+\newcommand{\modexp}{\textsc{Modexp}\xspace}
+\newcommand{\modexpRound}{\ensuremath{i}\xspace}
+\newcommand{\powerIdx}{\ensuremath{k}\xspace}
+
+\newcommand{\interferenceSuperTest}{E-Solver\xspace}
+\newcommand{\interferenceFalseTest}{F-Solver\xspace}
+\newcommand{\sampleweight}{\ensuremath{\mathit{W}}\xspace}
+\newcommand{\localsampleweight}[1]{\ensuremath{\mathit{W}_{#1}}\xspace}
+\newcommand{\countTuple}{\ensuremath{\langle\ACIFn{},\AIIFn{},\DCFn{},\AOOFn{}\rangle}\xspace}
+\newcommand{\sampleTuple}{\ensuremath{\langle\ACIFn{},\AIIFn{},\SecFn{},\SecFnAlt{}\rangle}\xspace}
+\newcommand{\tuple}{\ensuremath{x}\xspace}
+\newcommand{\tupleAlt}{\ensuremath{x'}\xspace}
+\newcommand{\centertuple}[1]{\ensuremath{\bar{x}_{#1}}\xspace}
+\newcommand{\localityThreshold}{\ensuremath{\theta}\xspace}
+\newcommand{\genericThreshold}{\ensuremath{\theta}\xspace}
+
+\newcommand{\gbTreeIdx}{\ensuremath{j}\xspace}
+\newcommand{\gbTreeNmbr}{\ensuremath{m}\xspace}
+\newcommand{\gbTree}[1]{\ensuremath{T_{#1}}\xspace}
+\newcommand{\gbTreeLevel}{\ensuremath{\ell}\xspace}
+\newcommand{\gbPred}[2]{\ensuremath{\pi_{{#1},{#2}}}\xspace}
+
+\newcommand{\BE}{\texttt{B+E}\xspace}
+\newcommand{\reducibleVars}{\ensuremath{\mathit{Dep}}\xspace}
+\newcommand{\redVar}{\ensuremath{v}\xspace}
+\newcommand{\supportVars}{\ensuremath{\mathit{Sup}}\xspace}
+\newcommand{\negCls}[1]{\ensuremath{\mathit{C_{#1}}}\xspace}
+\newcommand{\posCls}[1]{\ensuremath{\mathit{C'_{#1}}}\xspace}
+\newcommand{\nposCls}{\ensuremath{a}\xspace}
+\newcommand{\nnegCls}{\ensuremath{b}\xspace}
+\newcommand{\negIdx}{\ensuremath{j}\xspace}
+\newcommand{\posIdx}{\ensuremath{i}\xspace}
+\newcommand{\linearFeature}[1]{\ensuremath{L_{#1}}}
+\newcommand{\diffFeature}[1]{|\ensuremath{\SecFn{}(\secretVar)[#1]-\SecFnAlt{}(\secretVar)[#1]}|}
+
+\newcommand{\cacheMap}[1]{\ensuremath{\textsf{M}_{#1}}\xspace}
+\newcommand{\cacheMapEntry}[3]{\ensuremath{\textsf{M}_{#1}\{#2\}\{#3\}}\xspace}
+\newcommand{\phantomCacheMap}[1]{\ensuremath{\textsf{M}^{\phantomR}_{#1}}\xspace}
+\newcommand{\phantomCacheMapEntry}[3]{\ensuremath{\textsf{M}^{\phantomR}_{#1}\{#2\}\{#3\}}\xspace}
+\newcommand{\domainIdx}{\ensuremath{dom}\xspace}
+\newcommand{\victimDomainId}{\ensuremath{0}\xspace}
+\newcommand{\attackerDomainId}{\ensuremath{1}\xspace}
+\newcommand{\bpdIdx}{\ensuremath{bidx}\xspace}
+\newcommand{\bpdState}[1]{\textrm{`bpd\{$#1$\}.state'}\xspace}
+\newcommand{\bpdCFI}[1]{\textrm{`bpd\{$#1$\}.CFI'}\xspace}
+
+\newcommand{\leakChance}{\ensuremath{p}}
+
+\newcommand{\opcode}{\gls{opcode}}
+
+\lstdefinelanguage
+   [riscv]{Assembler}     % add a "x64" dialect of Assembler
+   [Motorola68k]{Assembler} % based on the "x86masm" dialect
+   % with these extra keywords:
+   {morekeywords={lb,lbu,sb,li,lui,mul,mulw,lw,remw,remuw,bleu,sll,ret,beqz}} % etc.
+
+\lstdefinestyle{customriscv}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=[riscv]Assembler,
+  showstringspaces=false,
+  basicstyle=\scriptsize\ttfamily,
+}
+
+
+\newlength\colW \setlength\colW{2ex}
+\newlength\colR \setlength\colR{2ex}
+\newlength\colRule \setlength\colRule{40ex}
+\newlength\colPrecision \setlength\colPrecision{7ex}
+\newlength\colRecall \setlength\colRecall{4ex}
+\newlength\colCombined
+\setlength\colCombined{\colR+\colRule+\colPrecision+\colRecall}
+\definecolor{lightgrey}{rgb}{0.925, 0.925, 0.925}
